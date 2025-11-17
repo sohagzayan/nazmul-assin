@@ -11,7 +11,7 @@ export default function Sidebar() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const navItems = [
-    { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/teams', label: 'Teams', icon: Users },
     { href: '/projects', label: 'Projects', icon: FolderKanban },
     { href: '/tasks', label: 'Tasks', icon: CheckSquare },
@@ -26,7 +26,7 @@ export default function Sidebar() {
         <nav className="flex-1 p-4 space-y-2">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href || (item.href === '/' && pathname === '/');
+            const isActive = pathname === item.href;
             
             return (
               <motion.div

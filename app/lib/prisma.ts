@@ -1,6 +1,4 @@
-'use server';
-
-import { PrismaClient } from '../generated/prisma';
+import { PrismaClient } from '../generated/prisma/client';
 
 const databaseUrl = process.env.DATABASE_URL;
 

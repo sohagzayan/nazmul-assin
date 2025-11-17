@@ -32,6 +32,7 @@ NEXT_PUBLIC_DEMO_ADMIN_PASSWORD="admin123"
 NEXT_PUBLIC_DEMO_USER_USERNAME="john"
 NEXT_PUBLIC_DEMO_USER_EMAIL="john@taskmanager.com"
 NEXT_PUBLIC_DEMO_USER_PASSWORD="john123"
+JWT_SECRET="task-manager-secret-key"
 ```
 
 Update these values to match your local or hosted services.

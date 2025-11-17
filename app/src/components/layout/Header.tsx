@@ -6,13 +6,14 @@ import { LogOut } from 'lucide-react';
 export default function Header() {
   const { currentUser, logout } = useApp();
 
-  if (!currentUser) return null;
+  // Show header even if currentUser is loading - middleware ensures we're authenticated
+  const displayName = currentUser?.email || currentUser?.username || 'User';
 
   return (
     <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between sticky top-0 z-40 pl-16 pr-4 md:pl-6 md:pr-6">
       <span className="text-sm text-gray-600">
         Welcome back,{' '}
-        <span className="font-medium text-gray-900">{currentUser.email || currentUser.username}</span>
+        <span className="font-medium text-gray-900">{displayName}</span>
       </span>
       <button
         onClick={logout}

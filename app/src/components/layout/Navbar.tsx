@@ -11,7 +11,7 @@ export default function Navbar() {
   if (!currentUser) return null;
 
   const navItems = [
-    { href: '/', label: 'Dashboard' },
+    { href: '/dashboard', label: 'Dashboard' },
     { href: '/teams', label: 'Teams' },
     { href: '/projects', label: 'Projects' },
     { href: '/tasks', label: 'Tasks' },
@@ -22,7 +22,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-8">
-            <Link href="/" className="text-xl font-bold text-indigo-600 hover:text-indigo-700 transition-colors duration-200">
+            <Link href="/dashboard" className="text-xl font-bold text-indigo-600 hover:text-indigo-700 transition-colors duration-200">
               Task Manager
             </Link>
             <div className="flex space-x-1">
