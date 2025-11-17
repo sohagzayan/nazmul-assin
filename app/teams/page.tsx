@@ -2,7 +2,7 @@
 
 import { useApp } from '../src/context/AppContext';
 import LoginForm from '../src/components/auth/LoginForm';
-import Navbar from '../src/components/layout/Navbar';
+import AppLayout from '../src/components/layout/AppLayout';
 import TeamList from '../src/components/teams/TeamList';
 
 export default function TeamsPage() {
@@ -13,10 +13,8 @@ export default function TeamsPage() {
   }
 
   return (
-    <>
-      <Navbar />
+    <AppLayout>
       <TeamList />
-    </>
+    </AppLayout>
   );
 }
-

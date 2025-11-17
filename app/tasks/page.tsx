@@ -2,7 +2,7 @@
 
 import { useApp } from '../src/context/AppContext';
 import LoginForm from '../src/components/auth/LoginForm';
-import Navbar from '../src/components/layout/Navbar';
+import AppLayout from '../src/components/layout/AppLayout';
 import TaskList from '../src/components/tasks/TaskList';
 
 export default function TasksPage() {
@@ -13,10 +13,8 @@ export default function TasksPage() {
   }
 
   return (
-    <>
-      <Navbar />
+    <AppLayout>
       <TaskList />
-    </>
+    </AppLayout>
   );
 }
-

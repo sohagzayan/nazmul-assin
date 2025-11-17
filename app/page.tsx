@@ -2,7 +2,7 @@
 
 import LoginForm from "./src/components/auth/LoginForm";
 import Dashboard from "./src/components/dashboard/Dashboard";
-import Navbar from "./src/components/layout/Navbar";
+import AppLayout from "./src/components/layout/AppLayout";
 import { useApp } from "./src/context/AppContext";
 
 export default function Home() {
@@ -13,9 +13,8 @@ export default function Home() {
   }
 
   return (
-    <>
-      <Navbar />
+    <AppLayout>
       <Dashboard />
-    </>
+    </AppLayout>
   );
 }

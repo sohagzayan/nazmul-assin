@@ -22,6 +22,29 @@ body {
   box-sizing: border-box;
 }
 
+button {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.1);
+}
+
+button:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
+}
+
+a {
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+a:hover {
+  transform: translateX(1px);
+}
+
 input[type="text"],
 input[type="email"],
 input[type="password"],
