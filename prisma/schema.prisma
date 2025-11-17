@@ -1,0 +1,105 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  DONE
+}
+
+enum ActivityLogType {
+  REASSIGNMENT
+  TASK_CREATED
+  TASK_UPDATED
+  TASK_DELETED
+}
+
+model User {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  username  String    @unique
+  email     String    @unique
+  password  String
+  teams     Team[]    @relation("TeamCreator")
+  projects  Project[] @relation("ProjectCreator")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Team {
+  id          String       @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  createdById String       @db.ObjectId
+  createdBy   User         @relation("TeamCreator", fields: [createdById], references: [id])
+  members     TeamMember[]
+  projects    Project[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model TeamMember {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  role      String
+  capacity  Int
+  teamId    String   @db.ObjectId
+  team      Team     @relation(fields: [teamId], references: [id])
+  taskLoad  Task[]   @relation("MemberTasks")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Project {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String
+  teamId      String   @db.ObjectId
+  team        Team     @relation(fields: [teamId], references: [id])
+  createdById String   @db.ObjectId
+  createdBy   User     @relation("ProjectCreator", fields: [createdById], references: [id])
+  tasks       Task[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Task {
+  id               String         @id @default(auto()) @map("_id") @db.ObjectId
+  title            String
+  description      String
+  projectId        String         @db.ObjectId
+  project          Project        @relation(fields: [projectId], references: [id])
+  assignedMemberId String?        @db.ObjectId
+  assignedMember   TeamMember?    @relation("MemberTasks", fields: [assignedMemberId], references: [id])
+  priority         Priority
+  status           TaskStatus
+  activityLogs     ActivityLog[]
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+}
+
+model ActivityLog {
+  id        String           @id @default(auto()) @map("_id") @db.ObjectId
+  message   String
+  type      ActivityLogType
+  taskId    String?          @db.ObjectId
+  task      Task?            @relation(fields: [taskId], references: [id])
+  timestamp DateTime         @default(now())
+}
