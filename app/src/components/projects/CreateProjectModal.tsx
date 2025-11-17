@@ -22,8 +22,14 @@ export default function CreateProjectModal({ onClose }: CreateProjectModalProps)
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full">
+    <div 
+      className="fixed inset-0 bg-gray-900/40 flex items-center justify-center z-50 p-4 backdrop-blur-[2px]"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-xl shadow-xl max-w-lg w-full"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-2xl font-bold text-gray-900">Create New Project</h2>
         </div>
