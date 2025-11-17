@@ -1,19 +1,20 @@
 import { User, Team, Project, Task, ActivityLog } from '../types';
 
-export const demoUsers: User[] = [
-  {
-    id: 'user-1',
-    username: 'admin',
-    email: 'admin@taskmanager.com',
-    password: 'admin123',
-  },
-  {
-    id: 'user-2',
-    username: 'john',
-    email: 'john@taskmanager.com',
-    password: 'john123',
-  },
-];
+const demoAdminUser: User = {
+  id: 'user-1',
+  username: process.env.NEXT_PUBLIC_DEMO_ADMIN_USERNAME ?? 'admin',
+  email: process.env.NEXT_PUBLIC_DEMO_ADMIN_EMAIL ?? 'admin@taskmanager.com',
+  password: process.env.NEXT_PUBLIC_DEMO_ADMIN_PASSWORD ?? 'admin123',
+};
+
+const demoStandardUser: User = {
+  id: 'user-2',
+  username: process.env.NEXT_PUBLIC_DEMO_USER_USERNAME ?? 'john',
+  email: process.env.NEXT_PUBLIC_DEMO_USER_EMAIL ?? 'john@taskmanager.com',
+  password: process.env.NEXT_PUBLIC_DEMO_USER_PASSWORD ?? 'john123',
+};
+
+export const demoUsers: User[] = [demoAdminUser, demoStandardUser];
 
 export const demoTeams: Team[] = [
   {

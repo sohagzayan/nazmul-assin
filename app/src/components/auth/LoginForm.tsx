@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 
+const demoUsername = process.env.NEXT_PUBLIC_DEMO_ADMIN_USERNAME ?? 'admin';
+const demoPassword = process.env.NEXT_PUBLIC_DEMO_ADMIN_PASSWORD ?? 'admin123';
+
 export default function LoginForm() {
   const { login, register } = useApp();
   const [isLogin, setIsLogin] = useState(true);
@@ -113,7 +116,9 @@ export default function LoginForm() {
         {isLogin && (
           <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
             <p className="text-xs text-gray-600 mb-2">Demo credentials:</p>
-            <p className="text-xs text-gray-700">Username: <strong>admin</strong> / Password: <strong>admin123</strong></p>
+            <p className="text-xs text-gray-700">
+              Username: <strong>{demoUsername}</strong> / Password: <strong>{demoPassword}</strong>
+            </p>
           </div>
         )}
       </div>

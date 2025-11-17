@@ -20,6 +20,22 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Environment Variables
+
+Create a `.env.local` file in the project root before running the app. It should define the database connection string for Prisma as well as the demo credentials shown in the login screen:
+
+```
+DATABASE_URL="mongodb://127.0.0.1:27017/task_management"
+NEXT_PUBLIC_DEMO_ADMIN_USERNAME="admin"
+NEXT_PUBLIC_DEMO_ADMIN_EMAIL="admin@taskmanager.com"
+NEXT_PUBLIC_DEMO_ADMIN_PASSWORD="admin123"
+NEXT_PUBLIC_DEMO_USER_USERNAME="john"
+NEXT_PUBLIC_DEMO_USER_EMAIL="john@taskmanager.com"
+NEXT_PUBLIC_DEMO_USER_PASSWORD="john123"
+```
+
+Update these values to match your local or hosted services.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
