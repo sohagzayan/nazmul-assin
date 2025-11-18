@@ -1,14 +1,29 @@
 'use client';
 
-import { useApp } from '../../context/AppContext';
+import { useState } from 'react';
 import { format } from 'date-fns';
 import { Users, FolderKanban, CheckSquare, AlertTriangle, TrendingUp, BarChart3 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useToast } from '../../context/ToastContext';
+import { useGetTasksQuery, useReassignTasksMutation } from '../../../redux/features/taskApi';
+import { useGetProjectsQuery } from '../../../redux/features/projectsApi';
+import { useGetTeamsQuery } from '../../../redux/features/teamsApi';
+import { useGetActivityLogsQuery } from '../../../redux/features/activityLogsApi';
+import ConfirmReassignModal from './ConfirmReassignModal';
 
 export default function Dashboard() {
-  const { projects, tasks, teams, activityLogs, reassignTasks } = useApp();
+  const { data: tasksData, refetch: refetchTasks } = useGetTasksQuery();
+  const { data: projectsData } = useGetProjectsQuery();
+  const { data: teamsData } = useGetTeamsQuery();
+  const { data: activityLogsData, refetch: refetchActivityLogs } = useGetActivityLogsQuery();
+  const [reassignTasks, { isLoading: isReassigning }] = useReassignTasksMutation();
   const { showToast } = useToast();
+  const [showReassignModal, setShowReassignModal] = useState(false);
+
+  const tasks = tasksData?.tasks || [];
+  const projects = projectsData?.projects || [];
+  const teams = teamsData?.teams || [];
+  const activityLogs = activityLogsData?.activityLogs || [];
 
   const getTeamSummary = () => {
     return teams.map(team => {
@@ -101,11 +116,13 @@ export default function Dashboard() {
           <p className="text-gray-600">Overview of your task management system</p>
         </div>
         <button
-          onClick={() => {
-            reassignTasks();
-            showToast('Reassignment completed', 'info');
-          }}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-all duration-200 shadow-sm"
+          onClick={() => setShowReassignModal(true)}
+          disabled={isReassigning}
+          className={`flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium transition-all duration-200 shadow-sm ${
+            isReassigning
+              ? 'opacity-50 cursor-not-allowed'
+              : 'hover:bg-blue-700'
+          }`}
         >
           <TrendingUp className="w-4 h-4" />
           <span>Reassign Tasks</span>
@@ -206,6 +223,39 @@ export default function Dashboard() {
           )}
         </motion.div>
       </div>
+
+      {showReassignModal && (
+        <ConfirmReassignModal
+          isOpen={showReassignModal}
+          onConfirm={async () => {
+            try {
+              const result = await reassignTasks().unwrap();
+              if (result.success) {
+                const count = result.count || 0;
+                if (count > 0) {
+                  showToast(`${count} task(s) reassigned successfully`, 'success');
+                } else {
+                  showToast('No tasks needed reassignment', 'info');
+                }
+                // Refetch tasks and activity logs to update the UI
+                await refetchTasks();
+                await refetchActivityLogs();
+                setShowReassignModal(false);
+              } else if (result.error) {
+                showToast(result.error, 'error');
+              }
+            } catch (error: any) {
+              console.error('Error reassigning tasks:', error);
+              showToast(
+                error?.data?.error || 'Failed to reassign tasks. Please try again.',
+                'error'
+              );
+            }
+          }}
+          onCancel={() => setShowReassignModal(false)}
+          isLoading={isReassigning}
+        />
+      )}
     </motion.div>
   );
 }

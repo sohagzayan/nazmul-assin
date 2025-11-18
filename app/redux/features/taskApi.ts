@@ -1,6 +1,9 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { Task } from '../../src/types';
 
+// Import activityLogsApi to invalidate its cache
+import { activityLogsApi } from './activityLogsApi';
+
 interface GetTasksResponse {
   tasks?: Task[];
   error?: string;
@@ -32,6 +35,18 @@ interface UpdateTaskResponse {
 
 interface DeleteTaskResponse {
   success?: boolean;
+  error?: string;
+}
+
+interface ReassignTasksResponse {
+  success?: boolean;
+  reassignments?: Array<{
+    taskId: string;
+    taskTitle: string;
+    fromMemberName: string;
+    toMemberName: string;
+  }>;
+  count?: number;
   error?: string;
 }
 
@@ -76,6 +91,22 @@ export const taskApi = createApi({
       }),
       invalidatesTags: (result, error, id) => [{ type: 'Tasks', id }, { type: 'Tasks', id: 'LIST' }],
     }),
+    reassignTasks: builder.mutation<ReassignTasksResponse, void>({
+      query: () => ({
+        url: '/reassign',
+        method: 'POST',
+      }),
+      invalidatesTags: [{ type: 'Tasks', id: 'LIST' }],
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          // Invalidate activity logs after successful reassignment
+          dispatch(activityLogsApi.util.invalidateTags([{ type: 'ActivityLogs', id: 'LIST' }]));
+        } catch {
+          // Error handling is done by the mutation
+        }
+      },
+    }),
   }),
 });
 
@@ -84,4 +115,5 @@ export const {
   useCreateTaskMutation,
   useUpdateTaskMutation,
   useDeleteTaskMutation,
+  useReassignTasksMutation,
 } = taskApi;
