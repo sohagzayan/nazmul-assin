@@ -25,10 +25,10 @@ export default function LoginForm() {
       const result = await login(username || email, password);
       if (!result.success) {
         setErrors({
-          username: result.fieldErrors?.identifier ?? result.fieldErrors?.username,
-          email: result.fieldErrors?.email,
-          password: result.fieldErrors?.password,
-          general: result.message,
+          username: result.fieldErrors?.identifier ?? result.fieldErrors?.username ?? '',
+          email: result.fieldErrors?.email ?? '',
+          password: result.fieldErrors?.password ?? '',
+          general: result.message ?? '',
         });
         setIsSubmitting(false);
       } else {
@@ -39,10 +39,10 @@ export default function LoginForm() {
       const result = await register(username, email, password);
       if (!result.success) {
         setErrors({
-          username: result.fieldErrors?.username,
-          email: result.fieldErrors?.email,
-          password: result.fieldErrors?.password,
-          general: result.message,
+          username: result.fieldErrors?.username ?? '',
+          email: result.fieldErrors?.email ?? '',
+          password: result.fieldErrors?.password ?? '',
+          general: result.message ?? '',
         });
       } else {
         setSuccessMessage(result.message ?? 'Account created. Please sign in.');

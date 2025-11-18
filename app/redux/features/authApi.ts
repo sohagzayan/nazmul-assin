@@ -77,8 +77,6 @@ export const authApi = createApi({
         cache: "no-store",
       }),
       providesTags: ["Auth"],
-      refetchOnMountOrArgChange: true,
-      keepUnusedDataFor: 0,
     }),
   }),
 });

@@ -1,14 +1,12 @@
-import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { NextResponse, type NextRequest } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
 import { verifySessionToken } from '@/app/lib/auth';
 
 const COOKIE_NAME = 'task_manager_token';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const cookieStore = cookies();
-    const token = cookieStore.get(COOKIE_NAME)?.value;
+    const token = request.cookies.get(COOKIE_NAME)?.value;
 
     if (!token) {
       console.log('[SESSION] No token found in cookies');
