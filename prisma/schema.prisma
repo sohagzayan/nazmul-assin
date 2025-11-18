@@ -32,6 +32,7 @@ enum ActivityLogType {
   TASK_UPDATED
   TASK_DELETED
 }
+//
 
 model User {
   id        String    @id @default(auto()) @map("_id") @db.ObjectId
