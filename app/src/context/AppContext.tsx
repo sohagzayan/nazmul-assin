@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState } from 'react';
 import { User, Team, Project, Task, ActivityLog, TeamMember } from '../types';
-import { demoTeams, demoProjects, demoTasks, demoActivityLogs } from '../data/demoData';
+import { demoActivityLogs } from '../data/demoData';
 import {
   useRegisterMutation,
   useLoginMutation,
@@ -81,10 +81,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [updateTaskMutation] = useUpdateTaskMutation();
   const [deleteTaskMutation] = useDeleteTaskMutation();
 
-  // Derive state from RTK Query data (fallback to demo data if API not available)
-  const teams = teamsData?.teams ?? demoTeams;
-  const projects = projectsData?.projects ?? demoProjects;
-  const tasks = tasksData?.tasks ?? demoTasks;
+  // Derive state from RTK Query data (no demo data fallback)
+  const teams = teamsData?.teams ?? [];
+  const projects = projectsData?.projects ?? [];
+  const tasks = tasksData?.tasks ?? [];
 
   // Sync session data to currentUser IMMEDIATELY when it changes
   React.useEffect(() => {

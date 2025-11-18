@@ -77,9 +77,7 @@ export const authApi = createApi({
         cache: "no-store",
       }),
       providesTags: ["Auth"],
-      // Always refetch on mount to check authentication status
       refetchOnMountOrArgChange: true,
-      // Don't cache the "not authenticated" response
       keepUnusedDataFor: 0,
     }),
   }),

@@ -1,20 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import CreateTeamModal from './CreateTeamModal';
-import { Trash2, Users } from 'lucide-react';
+import { Trash2, Users, UserPlus } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function TeamList() {
   const { teams } = useApp();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
 
   return (
     <motion.div
@@ -36,18 +30,28 @@ export default function TeamList() {
         </button>
       </div>
 
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map((skeleton) => (
-            <div key={skeleton} className="bg-white rounded-lg border border-gray-200 p-6 animate-pulse space-y-4">
-              <div className="h-6 bg-gray-200 rounded w-1/3" />
-              <div className="space-y-2">
-                <div className="h-4 bg-gray-200 rounded w-1/2" />
-                <div className="h-20 bg-gray-100 rounded" />
-              </div>
-            </div>
-          ))}
-        </div>
+      {teams.length === 0 ? (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="flex flex-col items-center justify-center py-16 px-4 bg-white rounded-lg border border-gray-200 shadow-sm"
+        >
+          <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+            <Users className="w-12 h-12 text-gray-400" />
+          </div>
+          <h2 className="text-2xl font-semibold text-gray-900 mb-2">No Teams Created Yet</h2>
+          <p className="text-gray-600 text-center max-w-md mb-6">
+            Get started by creating your first team. Add team members, assign roles, and set their capacity to manage workloads effectively.
+          </p>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-all duration-200 shadow-sm"
+          >
+            <UserPlus className="w-5 h-5" />
+            <span>Create Your First Team</span>
+          </button>
+        </motion.div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {teams.map((team, index) => (
