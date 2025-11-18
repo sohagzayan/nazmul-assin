@@ -32,7 +32,9 @@ enum ActivityLogType {
   TASK_UPDATED
   TASK_DELETED
 }
-//
+//webdevnazmulh_db_user
+//63huEUJhNt0LiO5v
+// mongodb+srv://webdevnazmulh_db_user:63huEUJhNt0LiO5v@cluster0.wml7okx.mongodb.net/?appName=Cluster0
 
 model User {
   id        String    @id @default(auto()) @map("_id") @db.ObjectId
