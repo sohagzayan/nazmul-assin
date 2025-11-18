@@ -7,10 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "prisma:generate": "prisma generate",
+    "prisma:generate": "cross-env PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 prisma generate",
     "prisma:push": "prisma db push",
     "db:studio": "prisma studio",
-    "postinstall": "prisma generate",
+    "postinstall": "cross-env PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 prisma generate",
     "db:migrate": "prisma migrate dev"
   },
   "dependencies": {
@@ -31,6 +31,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "cross-env": "^10.1.0",
     "eslint": "^9",
     "eslint-config-next": "16.0.3",
     "prisma": "^6.19.0",
