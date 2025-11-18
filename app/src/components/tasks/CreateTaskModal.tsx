@@ -1,17 +1,27 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useApp } from '../../context/AppContext';
 import { Priority, TaskStatus } from '../../types';
 import { X } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
+import { useCreateTaskMutation, useGetTasksQuery } from '../../../redux/features/taskApi';
+import { useGetProjectsQuery } from '../../../redux/features/projectsApi';
+import { useGetTeamsQuery } from '../../../redux/features/teamsApi';
 
 interface CreateTaskModalProps {
   onClose: () => void;
 }
 
 export default function CreateTaskModal({ onClose }: CreateTaskModalProps) {
-  const { createTask, projects, teams, tasks } = useApp();
+  const [createTask, { isLoading }] = useCreateTaskMutation();
+  const { refetch: refetchTasks } = useGetTasksQuery();
+  const { data: projectsData } = useGetProjectsQuery();
+  const { data: teamsData } = useGetTeamsQuery();
+  const { data: tasksData } = useGetTasksQuery();
+  
+  const projects = projectsData?.projects || [];
+  const teams = teamsData?.teams || [];
+  const tasks = tasksData?.tasks || [];
   const { showToast } = useToast();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -79,19 +89,47 @@ export default function CreateTaskModal({ onClose }: CreateTaskModalProps) {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (title && description && projectId) {
-      createTask({
-        title,
-        description,
-        projectId,
-        assignedMemberId,
-        priority,
-        status,
-      });
-      showToast('Task created successfully');
-      onClose();
+      try {
+        const result = await createTask({
+          title,
+          description,
+          projectId,
+          assignedMemberId: assignedMemberId || null,
+          priority,
+          status,
+        }).unwrap();
+
+        if (result.task) {
+          showToast('Task created successfully', 'success');
+          // Reset form
+          setTitle('');
+          setDescription('');
+          setProjectId('');
+          setAssignedMemberId(null);
+          setPriority('Medium');
+          setStatus('Pending');
+          setShowWarning(false);
+          setWarningMember(null);
+          setAutoAssign(false);
+          // Refetch tasks to update the list
+          await refetchTasks();
+          // Close modal after a brief delay to show the toast
+          setTimeout(() => {
+            onClose();
+          }, 300);
+        } else if (result.error) {
+          showToast(result.error, 'error');
+        }
+      } catch (error: any) {
+        console.error('Error creating task:', error);
+        showToast(
+          error?.data?.error || 'Failed to create task. Please try again.',
+          'error'
+        );
+      }
     }
   };
 
@@ -278,9 +316,14 @@ export default function CreateTaskModal({ onClose }: CreateTaskModalProps) {
           <div className="flex justify-end pt-4 border-t border-gray-200">
             <button
               type="submit"
-              className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 active:bg-blue-800 transition-all duration-200 shadow-sm w-full"
+              disabled={isLoading}
+              className={`px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium transition-all duration-200 shadow-sm w-full ${
+                isLoading
+                  ? 'opacity-50 cursor-not-allowed'
+                  : 'hover:bg-blue-700 active:bg-blue-800'
+              }`}
             >
-              Create Task
+              {isLoading ? 'Creating...' : 'Create Task'}
             </button>
           </div>
         </form>

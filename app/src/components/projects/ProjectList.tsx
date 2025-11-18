@@ -1,14 +1,60 @@
 'use client';
 
 import { useState } from 'react';
-import { useApp } from '../../context/AppContext';
 import CreateProjectModal from './CreateProjectModal';
+import ConfirmDeleteModal from '../teams/ConfirmDeleteModal';
 import { FolderKanban, Users, Trash2, CheckSquare } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useGetProjectsQuery, useDeleteProjectMutation } from '../../../redux/features/projectsApi';
+import { useGetTeamsQuery } from '../../../redux/features/teamsApi';
+import { useGetTasksQuery } from '../../../redux/features/taskApi';
+import { useToast } from '../../context/ToastContext';
 
 export default function ProjectList() {
-  const { projects, teams, tasks } = useApp();
+  const { data: projectsData, isLoading: projectsLoading, error: projectsError, refetch } = useGetProjectsQuery();
+  const [deleteProject, { isLoading: isDeleting }] = useDeleteProjectMutation();
+  const { showToast } = useToast();
+  const { data: teamsData } = useGetTeamsQuery();
+  const { data: tasksData } = useGetTasksQuery();
+  
+  const projects = projectsData?.projects || [];
+  const teams = teamsData?.teams || [];
+  const tasks = tasksData?.tasks || [];
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<{ id: string; name: string } | null>(null);
+  
+  // Show empty state if no projects
+  const showEmptyState = !projectsLoading && projects.length === 0;
+
+  const handleDeleteClick = (projectId: string, projectName: string) => {
+    setProjectToDelete({ id: projectId, name: projectName });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!projectToDelete) return;
+
+    try {
+      const result = await deleteProject(projectToDelete.id).unwrap();
+
+      if (result.success) {
+        showToast('Project deleted successfully', 'success');
+        setProjectToDelete(null);
+        // Refetch will happen automatically via cache invalidation
+      } else if (result.error) {
+        showToast(result.error, 'error');
+      }
+    } catch (error: any) {
+      console.error('Error deleting project:', error);
+      showToast(
+        error?.data?.error || 'Failed to delete project. Please try again.',
+        'error'
+      );
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setProjectToDelete(null);
+  };
 
   const getTeamName = (teamId: string) => {
     return teams.find(t => t.id === teamId)?.name || 'Unknown Team';
@@ -58,7 +104,15 @@ export default function ProjectList() {
         </button>
       </div>
 
-      {projects.length === 0 ? (
+      {projectsLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <div className="text-gray-500">Loading projects...</div>
+        </div>
+      ) : projectsError ? (
+        <div className="flex items-center justify-center py-16">
+          <div className="text-red-500">Failed to load projects. Please try again.</div>
+        </div>
+      ) : showEmptyState ? (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -106,7 +160,11 @@ export default function ProjectList() {
                     <FolderKanban className="w-5 h-5 text-gray-400" />
                     <h2 className="text-lg font-semibold text-gray-900">{project.name}</h2>
                   </div>
-                  <button className="text-gray-400 hover:text-red-600 transition-colors">
+                  <button 
+                    onClick={() => handleDeleteClick(project.id, project.name)}
+                    className="text-gray-400 hover:text-red-600 transition-colors"
+                    title="Delete project"
+                  >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -141,7 +199,22 @@ export default function ProjectList() {
 
       {isModalOpen && (
         <CreateProjectModal
-          onClose={() => setIsModalOpen(false)}
+          onClose={() => {
+            setIsModalOpen(false);
+            // Refetch projects after modal closes (in case a project was created)
+            refetch();
+          }}
+        />
+      )}
+
+      {projectToDelete && (
+        <ConfirmDeleteModal
+          isOpen={!!projectToDelete}
+          teamName={projectToDelete.name}
+          itemType="project"
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+          isLoading={isDeleting}
         />
       )}
     </motion.div>

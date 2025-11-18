@@ -59,7 +59,7 @@ export const taskApi = createApi({
         method: 'POST',
         body,
       }),
-      invalidatesTags: ['Tasks'],
+      invalidatesTags: [{ type: 'Tasks', id: 'LIST' }],
     }),
     updateTask: builder.mutation<UpdateTaskResponse, UpdateTaskRequest>({
       query: ({ id, updates }) => ({

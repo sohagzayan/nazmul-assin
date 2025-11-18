@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useApp } from '../../context/AppContext';
 import { Task, Priority, TaskStatus } from '../../types';
 import { X } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
+import { useUpdateTaskMutation, useGetTasksQuery } from '../../../redux/features/taskApi';
+import { useGetProjectsQuery } from '../../../redux/features/projectsApi';
+import { useGetTeamsQuery } from '../../../redux/features/teamsApi';
 
 interface EditTaskModalProps {
   task: Task;
@@ -12,7 +14,15 @@ interface EditTaskModalProps {
 }
 
 export default function EditTaskModal({ task, onClose }: EditTaskModalProps) {
-  const { updateTask, projects, teams, tasks: allTasks } = useApp();
+  const [updateTask, { isLoading }] = useUpdateTaskMutation();
+  const { refetch: refetchTasks } = useGetTasksQuery();
+  const { data: projectsData } = useGetProjectsQuery();
+  const { data: teamsData } = useGetTeamsQuery();
+  const { data: tasksData } = useGetTasksQuery();
+  
+  const projects = projectsData?.projects || [];
+  const teams = teamsData?.teams || [];
+  const allTasks = tasksData?.tasks || [];
   const { showToast } = useToast();
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description);
@@ -80,18 +90,39 @@ export default function EditTaskModal({ task, onClose }: EditTaskModalProps) {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateTask(task.id, {
-      title,
-      description,
-      projectId,
-      assignedMemberId,
-      priority,
-      status,
-    });
-    showToast('Task updated successfully');
-    onClose();
+    try {
+      const result = await updateTask({
+        id: task.id,
+        updates: {
+          title,
+          description,
+          projectId,
+          assignedMemberId: assignedMemberId || null,
+          priority,
+          status,
+        },
+      }).unwrap();
+
+      if (result.task) {
+        showToast('Task updated successfully', 'success');
+        // Refetch tasks to update the list
+        await refetchTasks();
+        // Close modal after a brief delay to show the toast
+        setTimeout(() => {
+          onClose();
+        }, 300);
+      } else if (result.error) {
+        showToast(result.error, 'error');
+      }
+    } catch (error: any) {
+      console.error('Error updating task:', error);
+      showToast(
+        error?.data?.error || 'Failed to update task. Please try again.',
+        'error'
+      );
+    }
   };
 
   return (
@@ -273,9 +304,14 @@ export default function EditTaskModal({ task, onClose }: EditTaskModalProps) {
           <div className="flex justify-end pt-4 border-t border-gray-200">
             <button
               type="submit"
-              className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 active:bg-blue-800 transition-all duration-200 shadow-sm w-full"
+              disabled={isLoading}
+              className={`px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium transition-all duration-200 shadow-sm w-full ${
+                isLoading
+                  ? 'opacity-50 cursor-not-allowed'
+                  : 'hover:bg-blue-700 active:bg-blue-800'
+              }`}
             >
-              Update Task
+              {isLoading ? 'Updating...' : 'Update Task'}
             </button>
           </div>
         </form>

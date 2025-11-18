@@ -1,27 +1,57 @@
 'use client';
 
 import { useState } from 'react';
-import { useApp } from '../../context/AppContext';
 import { X } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
+import { useCreateProjectMutation, useGetProjectsQuery } from '../../../redux/features/projectsApi';
+import { useGetTeamsQuery } from '../../../redux/features/teamsApi';
 
 interface CreateProjectModalProps {
   onClose: () => void;
 }
 
 export default function CreateProjectModal({ onClose }: CreateProjectModalProps) {
-  const { createProject, teams } = useApp();
+  const [createProject, { isLoading }] = useCreateProjectMutation();
+  const { refetch } = useGetProjectsQuery();
+  const { data: teamsData } = useGetTeamsQuery();
+  const teams = teamsData?.teams || [];
   const { showToast } = useToast();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [teamId, setTeamId] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (name && description && teamId) {
-      createProject(name, description, teamId);
-      showToast('Project created successfully');
-      onClose();
+      try {
+        const result = await createProject({
+          name,
+          description,
+          teamId,
+        }).unwrap();
+
+        if (result.project) {
+          showToast('Project created successfully', 'success');
+          // Reset form
+          setName('');
+          setDescription('');
+          setTeamId('');
+          // Refetch projects to update the list
+          await refetch();
+          // Close modal after a brief delay to show the toast
+          setTimeout(() => {
+            onClose();
+          }, 300);
+        } else if (result.error) {
+          showToast(result.error, 'error');
+        }
+      } catch (error: any) {
+        console.error('Error creating project:', error);
+        showToast(
+          error?.data?.error || 'Failed to create project. Please try again.',
+          'error'
+        );
+      }
     }
   };
 
@@ -98,9 +128,14 @@ export default function CreateProjectModal({ onClose }: CreateProjectModalProps)
           <div className="flex justify-end pt-4 border-t border-gray-200">
             <button
               type="submit"
-              className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 active:bg-blue-800 transition-all duration-200 shadow-sm w-full"
+              disabled={isLoading}
+              className={`px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium transition-all duration-200 shadow-sm w-full ${
+                isLoading
+                  ? 'opacity-50 cursor-not-allowed'
+                  : 'hover:bg-blue-700 active:bg-blue-800'
+              }`}
             >
-              Create Project
+              {isLoading ? 'Creating...' : 'Create Project'}
             </button>
           </div>
         </form>

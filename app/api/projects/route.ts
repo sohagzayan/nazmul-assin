@@ -26,15 +26,12 @@ export async function GET() {
     // Get token using cookies() for GET requests
     let token: string | undefined;
     try {
-      // In Next.js 16, cookies() might need to be awaited
       const cookieStore = await Promise.resolve(cookies());
       if (cookieStore && typeof cookieStore.get === 'function') {
         token = cookieStore.get(COOKIE_NAME)?.value;
-      } else {
-        console.error('[GET TEAMS] Invalid cookieStore:', typeof cookieStore);
       }
     } catch (error: any) {
-      console.error('[GET TEAMS] Error accessing cookies:', error?.message || error);
+      console.error('[GET PROJECTS] Error accessing cookies:', error?.message || error);
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -69,36 +66,37 @@ export async function GET() {
       );
     }
 
-    const teams = await prisma.team.findMany({
+    const projects = await prisma.project.findMany({
       where: {
         createdById: user.id,
       },
       include: {
-        members: true,
+        team: {
+          include: {
+            members: true,
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc',
       },
     });
 
-    // Transform to match frontend Team type
-    const transformedTeams = teams.map(team => ({
-      id: team.id,
-      name: team.name,
-      createdBy: team.createdById,
-      members: team.members.map(member => ({
-        id: member.id,
-        name: member.name,
-        role: member.role,
-        capacity: member.capacity,
-      })),
+    // Transform to match frontend Project type
+    const transformedProjects = projects.map(project => ({
+      id: project.id,
+      name: project.name,
+      description: project.description,
+      teamId: project.teamId,
+      createdBy: project.createdById,
+      createdAt: project.createdAt.toISOString(),
     }));
 
-    return NextResponse.json({ teams: transformedTeams });
+    return NextResponse.json({ projects: transformedProjects });
   } catch (error) {
-    console.error('[GET TEAMS]', error);
+    console.error('[GET PROJECTS]', error);
     return NextResponse.json(
-      { error: 'Something went wrong while fetching teams.' },
+      { error: 'Something went wrong while fetching projects.' },
       { status: 500 }
     );
   }
@@ -106,7 +104,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    // Get token from request headers (more reliable than cookies() in some Next.js versions)
+    // Get token from request headers
     const token = getCookieFromHeaders(request, COOKIE_NAME);
 
     if (!token) {
@@ -138,93 +136,74 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { name, members } = body;
+    const { name, description, teamId } = body;
 
     // Validation
     if (!name || name.trim().length === 0) {
       return NextResponse.json(
-        { error: 'Team name is required.' },
+        { error: 'Project name is required.' },
         { status: 400 }
       );
     }
 
-    if (!members || !Array.isArray(members) || members.length === 0) {
+    if (!description || description.trim().length === 0) {
       return NextResponse.json(
-        { error: 'At least one team member is required.' },
+        { error: 'Project description is required.' },
         { status: 400 }
       );
     }
 
-    // Validate members
-    const validMembers = members.filter((m: any) => m.name && m.role);
-    if (validMembers.length === 0) {
+    if (!teamId) {
       return NextResponse.json(
-        { error: 'At least one valid team member is required.' },
+        { error: 'Team ID is required.' },
         { status: 400 }
       );
     }
 
-    // Ensure capacity is a number
-    const membersToCreate = validMembers.map((member: any) => ({
-      name: member.name.trim(),
-      role: member.role.trim(),
-      capacity: typeof member.capacity === 'number' ? member.capacity : parseInt(String(member.capacity || 0), 10),
-    }));
+    // Verify team exists and belongs to user
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
+    });
 
-    // Create team first, then members (more reliable with MongoDB)
-    const team = await prisma.team.create({
+    if (!team) {
+      return NextResponse.json(
+        { error: 'Team not found.' },
+        { status: 404 }
+      );
+    }
+
+    if (team.createdById !== user.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized to assign project to this team.' },
+        { status: 403 }
+      );
+    }
+
+    // Create project
+    const project = await prisma.project.create({
       data: {
         name: name.trim(),
+        description: description.trim(),
+        teamId: teamId,
         createdById: user.id,
       },
     });
 
-    // Create members separately
-    const createdMembers = await Promise.all(
-      membersToCreate.map((memberData) =>
-        prisma.teamMember.create({
-          data: {
-            ...memberData,
-            teamId: team.id,
-          },
-        })
-      )
-    );
-
-    // Fetch team with members
-    const teamWithMembers = await prisma.team.findUnique({
-      where: { id: team.id },
-      include: {
-        members: true,
-      },
-    });
-
-    if (!teamWithMembers) {
-      return NextResponse.json(
-        { error: 'Failed to retrieve created team.' },
-        { status: 500 }
-      );
-    }
-
-    // Transform to match frontend Team type
-    const transformedTeam = {
-      id: teamWithMembers.id,
-      name: teamWithMembers.name,
-      createdBy: teamWithMembers.createdById,
-      members: teamWithMembers.members.map(member => ({
-        id: member.id,
-        name: member.name,
-        role: member.role,
-        capacity: member.capacity,
-      })),
+    // Transform to match frontend Project type
+    const transformedProject = {
+      id: project.id,
+      name: project.name,
+      description: project.description,
+      teamId: project.teamId,
+      createdBy: project.createdById,
+      createdAt: project.createdAt.toISOString(),
     };
 
-    return NextResponse.json({ team: transformedTeam }, { status: 201 });
+    return NextResponse.json({ project: transformedProject }, { status: 201 });
   } catch (error: any) {
-    console.error('[CREATE TEAM]', error);
+    console.error('[CREATE PROJECT]', error);
     
-    // Return more detailed error message for debugging
-    const errorMessage = error?.message || 'Something went wrong while creating the team.';
+    const errorMessage = error?.message || 'Something went wrong while creating the project.';
     return NextResponse.json(
       { 
         error: errorMessage,
@@ -268,63 +247,57 @@ export async function DELETE(request: Request) {
       );
     }
 
-    // Get team ID from URL
+    // Get project ID from URL
     const url = new URL(request.url);
-    const teamId = url.searchParams.get('id');
+    const projectId = url.searchParams.get('id');
 
-    if (!teamId) {
+    if (!projectId) {
       return NextResponse.json(
-        { error: 'Team ID is required.' },
+        { error: 'Project ID is required.' },
         { status: 400 }
       );
     }
 
-    // Verify team belongs to user
-    const team = await prisma.team.findUnique({
-      where: { id: teamId },
+    // Verify project belongs to user
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
       include: {
-        members: true,
-        projects: true,
+        tasks: true,
       },
     });
 
-    if (!team) {
+    if (!project) {
       return NextResponse.json(
-        { error: 'Team not found.' },
+        { error: 'Project not found.' },
         { status: 404 }
       );
     }
 
-    if (team.createdById !== user.id) {
+    if (project.createdById !== user.id) {
       return NextResponse.json(
-        { error: 'Unauthorized to delete this team.' },
+        { error: 'Unauthorized to delete this project.' },
         { status: 403 }
       );
     }
 
-    // Check if team has projects (optional: prevent deletion if team has projects)
-    if (team.projects.length > 0) {
+    // Check if project has tasks (optional: prevent deletion if project has tasks)
+    if (project.tasks.length > 0) {
       return NextResponse.json(
-        { error: 'Cannot delete team with existing projects. Please delete projects first.' },
+        { error: 'Cannot delete project with existing tasks. Please delete tasks first.' },
         { status: 400 }
       );
     }
 
-    // Delete team members first (cascade delete)
-    await prisma.teamMember.deleteMany({
-      where: { teamId: team.id },
-    });
-
-    // Delete team
-    await prisma.team.delete({
-      where: { id: team.id },
+    // Delete project (tasks are already checked, so safe to delete)
+    await prisma.project.delete({
+      where: { id: project.id },
     });
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error: any) {
-    console.error('[DELETE TEAM]', error);
+    console.error('[DELETE PROJECT]', error);
     
-    const errorMessage = error?.message || 'Something went wrong while deleting the team.';
+    const errorMessage = error?.message || 'Something went wrong while deleting the project.';
     return NextResponse.json(
       { 
         error: errorMessage,

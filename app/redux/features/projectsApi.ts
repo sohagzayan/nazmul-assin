@@ -17,6 +17,11 @@ interface GetProjectsResponse {
   error?: string;
 }
 
+interface DeleteProjectResponse {
+  success?: boolean;
+  error?: string;
+}
+
 export const projectsApi = createApi({
   reducerPath: 'projectsApi',
   baseQuery: fetchBaseQuery({
@@ -27,7 +32,13 @@ export const projectsApi = createApi({
   endpoints: (builder) => ({
     getProjects: builder.query<GetProjectsResponse, void>({
       query: () => '',
-      providesTags: ['Projects'],
+      providesTags: (result) =>
+        result?.projects
+          ? [
+              ...result.projects.map(({ id }) => ({ type: 'Projects' as const, id })),
+              { type: 'Projects', id: 'LIST' },
+            ]
+          : [{ type: 'Projects', id: 'LIST' }],
     }),
     createProject: builder.mutation<CreateProjectResponse, CreateProjectRequest>({
       query: (body) => ({
@@ -35,10 +46,17 @@ export const projectsApi = createApi({
         method: 'POST',
         body,
       }),
-      invalidatesTags: ['Projects'],
+      invalidatesTags: [{ type: 'Projects', id: 'LIST' }],
+    }),
+    deleteProject: builder.mutation<DeleteProjectResponse, string>({
+      query: (id) => ({
+        url: `?id=${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: [{ type: 'Projects', id: 'LIST' }],
     }),
   }),
 });
 
-export const { useGetProjectsQuery, useCreateProjectMutation } = projectsApi;
+export const { useGetProjectsQuery, useCreateProjectMutation, useDeleteProjectMutation } = projectsApi;
 

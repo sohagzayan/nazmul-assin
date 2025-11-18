@@ -16,6 +16,11 @@ interface GetTeamsResponse {
   error?: string;
 }
 
+interface DeleteTeamResponse {
+  success?: boolean;
+  error?: string;
+}
+
 export const teamsApi = createApi({
   reducerPath: 'teamsApi',
   baseQuery: fetchBaseQuery({
@@ -42,8 +47,15 @@ export const teamsApi = createApi({
       }),
       invalidatesTags: [{ type: 'Teams', id: 'LIST' }],
     }),
+    deleteTeam: builder.mutation<DeleteTeamResponse, string>({
+      query: (id) => ({
+        url: `?id=${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: [{ type: 'Teams', id: 'LIST' }],
+    }),
   }),
 });
 
-export const { useGetTeamsQuery, useCreateTeamMutation } = teamsApi;
+export const { useGetTeamsQuery, useCreateTeamMutation, useDeleteTeamMutation } = teamsApi;
 

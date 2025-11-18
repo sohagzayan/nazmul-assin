@@ -2,17 +2,52 @@
 
 import { useState } from 'react';
 import CreateTeamModal from './CreateTeamModal';
+import ConfirmDeleteModal from './ConfirmDeleteModal';
 import { Trash2, Users, UserPlus } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useGetTeamsQuery } from '../../../redux/features/teamsApi';
+import { useGetTeamsQuery, useDeleteTeamMutation } from '../../../redux/features/teamsApi';
+import { useToast } from '../../context/ToastContext';
 
 export default function TeamList() {
   const { data, isLoading, error, refetch } = useGetTeamsQuery();
+  const [deleteTeam, { isLoading: isDeleting }] = useDeleteTeamMutation();
+  const { showToast } = useToast();
   const teams = data?.teams || [];
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [teamToDelete, setTeamToDelete] = useState<{ id: string; name: string } | null>(null);
   
   // Show empty state if no teams (even if there was an error, we'll show empty state)
   const showEmptyState = !isLoading && teams.length === 0;
+
+  const handleDeleteClick = (teamId: string, teamName: string) => {
+    setTeamToDelete({ id: teamId, name: teamName });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!teamToDelete) return;
+
+    try {
+      const result = await deleteTeam(teamToDelete.id).unwrap();
+
+      if (result.success) {
+        showToast('Team deleted successfully', 'success');
+        setTeamToDelete(null);
+        // Refetch will happen automatically via cache invalidation
+      } else if (result.error) {
+        showToast(result.error, 'error');
+      }
+    } catch (error: any) {
+      console.error('Error deleting team:', error);
+      showToast(
+        error?.data?.error || 'Failed to delete team. Please try again.',
+        'error'
+      );
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setTeamToDelete(null);
+  };
 
   return (
     <motion.div
@@ -75,7 +110,11 @@ export default function TeamList() {
                   <Users className="w-5 h-5 text-gray-400" />
                   <h2 className="text-lg font-semibold text-gray-900">{team.name}</h2>
                 </div>
-                <button className="text-gray-400 hover:text-red-600 transition-colors">
+                <button 
+                  onClick={() => handleDeleteClick(team.id, team.name)}
+                  className="text-gray-400 hover:text-red-600 transition-colors"
+                  title="Delete team"
+                >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
@@ -105,6 +144,16 @@ export default function TeamList() {
             // Refetch teams after modal closes (in case a team was created)
             refetch();
           }}
+        />
+      )}
+
+      {teamToDelete && (
+        <ConfirmDeleteModal
+          isOpen={!!teamToDelete}
+          teamName={teamToDelete.name}
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+          isLoading={isDeleting}
         />
       )}
     </motion.div>

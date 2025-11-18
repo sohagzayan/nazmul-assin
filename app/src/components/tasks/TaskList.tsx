@@ -1,19 +1,30 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useApp } from '../../context/AppContext';
 import CreateTaskModal from './CreateTaskModal';
 import EditTaskModal from './EditTaskModal';
+import ConfirmDeleteModal from '../teams/ConfirmDeleteModal';
 import { Task, Priority, TaskStatus } from '../../types';
 import { CheckSquare, Filter, Pencil, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useToast } from '../../context/ToastContext';
+import { useGetTasksQuery, useDeleteTaskMutation } from '../../../redux/features/taskApi';
+import { useGetProjectsQuery } from '../../../redux/features/projectsApi';
+import { useGetTeamsQuery } from '../../../redux/features/teamsApi';
 
 export default function TaskList() {
-  const { tasks, projects, teams, deleteTask } = useApp();
+  const { data: tasksData, isLoading: tasksLoading, error: tasksError, refetch } = useGetTasksQuery();
+  const [deleteTask, { isLoading: isDeleting }] = useDeleteTaskMutation();
+  const { data: projectsData } = useGetProjectsQuery();
+  const { data: teamsData } = useGetTeamsQuery();
+  
+  const tasks = tasksData?.tasks || [];
+  const projects = projectsData?.projects || [];
+  const teams = teamsData?.teams || [];
   const { showToast } = useToast();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [taskToDelete, setTaskToDelete] = useState<{ id: string; title: string } | null>(null);
   const [filterProject, setFilterProject] = useState<string>('');
   const [filterMember, setFilterMember] = useState<string>('');
 
@@ -28,6 +39,36 @@ export default function TaskList() {
       if (member) return member.name;
     }
     return 'Unknown Member';
+  };
+
+  const handleDeleteClick = (taskId: string, taskTitle: string) => {
+    setTaskToDelete({ id: taskId, title: taskTitle });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!taskToDelete) return;
+
+    try {
+      const result = await deleteTask(taskToDelete.id).unwrap();
+
+      if (result.success) {
+        showToast('Task deleted successfully', 'success');
+        setTaskToDelete(null);
+        // Refetch will happen automatically via cache invalidation
+      } else if (result.error) {
+        showToast(result.error, 'error');
+      }
+    } catch (error: any) {
+      console.error('Error deleting task:', error);
+      showToast(
+        error?.data?.error || 'Failed to delete task. Please try again.',
+        'error'
+      );
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setTaskToDelete(null);
   };
 
   const getAllMembers = () => {
@@ -99,9 +140,9 @@ export default function TaskList() {
               setIsCreateModalOpen(true);
             }
           }}
-          disabled={projects.length === 0}
+          disabled={projects.length === 0 || tasksLoading}
           className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-sm ${
-            projects.length === 0
+            projects.length === 0 || tasksLoading
               ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
               : 'bg-blue-600 text-white hover:bg-blue-700'
           }`}
@@ -147,9 +188,18 @@ export default function TaskList() {
         </div>
       </div>
 
-      <div className="space-y-4">
-        {filteredTasks.length === 0 ? (
-          <motion.div
+      {tasksLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <div className="text-gray-500">Loading tasks...</div>
+        </div>
+      ) : tasksError ? (
+        <div className="flex items-center justify-center py-16">
+          <div className="text-red-500">Failed to load tasks. Please try again.</div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {filteredTasks.length === 0 ? (
+            <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
@@ -191,9 +241,9 @@ export default function TaskList() {
                   : 'Create New Task'}
               </span>
             </button>
-          </motion.div>
-        ) : (
-          filteredTasks.map((task) => (
+            </motion.div>
+          ) : (
+            filteredTasks.map((task) => (
             <div
               key={task.id}
               className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow"
@@ -232,11 +282,9 @@ export default function TaskList() {
                     <Pencil className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => {
-                      deleteTask(task.id);
-                      showToast('Task deleted', 'info');
-                    }}
+                    onClick={() => handleDeleteClick(task.id, task.title)}
                     className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                    title="Delete task"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -244,19 +292,39 @@ export default function TaskList() {
               </div>
             </div>
           ))
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {isCreateModalOpen && (
         <CreateTaskModal
-          onClose={() => setIsCreateModalOpen(false)}
+          onClose={() => {
+            setIsCreateModalOpen(false);
+            // Refetch tasks after modal closes (in case a task was created)
+            refetch();
+          }}
         />
       )}
 
       {editingTask && (
         <EditTaskModal
           task={editingTask}
-          onClose={() => setEditingTask(null)}
+          onClose={() => {
+            setEditingTask(null);
+            // Refetch tasks after modal closes (in case a task was updated)
+            refetch();
+          }}
+        />
+      )}
+
+      {taskToDelete && (
+        <ConfirmDeleteModal
+          isOpen={!!taskToDelete}
+          teamName={taskToDelete.title}
+          itemType="task"
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+          isLoading={isDeleting}
         />
       )}
     </motion.div>
