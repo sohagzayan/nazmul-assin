@@ -2,7 +2,6 @@ import { config as loadEnv } from "dotenv";
 import { defineConfig, env } from "prisma/config";
 
 // Load environment variables from common .env first, then override with .env.local if present.
-// Load environment variables from common .env first, then override with .env.local if present.
 loadEnv();
 loadEnv({ path: ".env.local", override: true });
 
