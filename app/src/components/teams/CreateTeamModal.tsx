@@ -1,17 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { useApp } from '../../context/AppContext';
 import { TeamMember } from '../../types';
 import { X, UserPlus } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
+import { useCreateTeamMutation, useGetTeamsQuery } from '../../../redux/features/teamsApi';
 
 interface CreateTeamModalProps {
   onClose: () => void;
 }
 
 export default function CreateTeamModal({ onClose }: CreateTeamModalProps) {
-  const { createTeam } = useApp();
+  const [createTeam, { isLoading }] = useCreateTeamMutation();
+  const { refetch } = useGetTeamsQuery();
   const { showToast } = useToast();
   const [teamName, setTeamName] = useState('');
   const [members, setMembers] = useState<Omit<TeamMember, 'id'>[]>([
@@ -32,13 +33,37 @@ export default function CreateTeamModal({ onClose }: CreateTeamModalProps) {
     setMembers(updated);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const validMembers = members.filter(m => m.name && m.role);
     if (teamName && validMembers.length > 0) {
-      createTeam(teamName, validMembers);
-      showToast('Team created successfully');
-      onClose();
+      try {
+        const result = await createTeam({
+          name: teamName,
+          members: validMembers,
+        }).unwrap();
+
+        if (result.team) {
+          showToast('Team created successfully', 'success');
+          // Reset form
+          setTeamName('');
+          setMembers([{ name: '', role: '', capacity: 3 }]);
+          // Refetch teams to update the list
+          await refetch();
+          // Close modal after a brief delay to show the toast
+          setTimeout(() => {
+            onClose();
+          }, 300);
+        } else if (result.error) {
+          showToast(result.error, 'error');
+        }
+      } catch (error: any) {
+        console.error('Error creating team:', error);
+        showToast(
+          error?.data?.error || 'Failed to create team. Please try again.',
+          'error'
+        );
+      }
     }
   };
 
@@ -155,9 +180,14 @@ export default function CreateTeamModal({ onClose }: CreateTeamModalProps) {
           <div className="flex justify-end pt-4 border-t border-gray-200">
             <button
               type="submit"
-              className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 active:bg-blue-800 transition-all duration-200 shadow-sm w-full"
+              disabled={isLoading}
+              className={`px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium transition-all duration-200 shadow-sm w-full ${
+                isLoading
+                  ? 'opacity-50 cursor-not-allowed'
+                  : 'hover:bg-blue-700 active:bg-blue-800'
+              }`}
             >
-              Create Team
+              {isLoading ? 'Creating...' : 'Create Team'}
             </button>
           </div>
         </form>

@@ -86,10 +86,26 @@ export default function TaskList() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Tasks</h1>
           <p className="text-gray-600">Manage and track all your tasks</p>
+          {projects.length === 0 && (
+            <p className="text-sm text-amber-600 mt-2 flex items-center space-x-1">
+              <CheckSquare className="w-4 h-4" />
+              <span>Create a project first to assign tasks</span>
+            </p>
+          )}
         </div>
         <button
-          onClick={() => setIsCreateModalOpen(true)}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-all duration-200 shadow-sm"
+          onClick={() => {
+            if (projects.length > 0) {
+              setIsCreateModalOpen(true);
+            }
+          }}
+          disabled={projects.length === 0}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-sm ${
+            projects.length === 0
+              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              : 'bg-blue-600 text-white hover:bg-blue-700'
+          }`}
+          title={projects.length === 0 ? 'Create a project first to create tasks' : ''}
         >
           <span>+</span>
           <span>Create Task</span>
@@ -133,9 +149,49 @@ export default function TaskList() {
 
       <div className="space-y-4">
         {filteredTasks.length === 0 ? (
-          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-            <p className="text-gray-500">No tasks found</p>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="flex flex-col items-center justify-center py-16 px-4 bg-white rounded-lg border border-gray-200 shadow-sm"
+          >
+            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+              <CheckSquare className="w-12 h-12 text-gray-400" />
+            </div>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+              {tasks.length === 0 ? 'No Tasks Yet' : 'No Tasks Match Your Filters'}
+            </h2>
+            <p className="text-gray-600 text-center max-w-md mb-6">
+              {tasks.length === 0 && projects.length === 0
+                ? 'You need to create a project first before you can create tasks. Projects are required to organize and assign tasks.'
+                : tasks.length === 0
+                ? 'Get started by creating your first task. Assign it to team members, set priorities, and track progress.'
+                : 'Try adjusting your filters to see more tasks, or create a new task to get started.'}
+            </p>
+            <button
+              onClick={() => {
+                if (projects.length > 0) {
+                  setIsCreateModalOpen(true);
+                }
+              }}
+              disabled={projects.length === 0}
+              className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-sm ${
+                projects.length === 0
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+              title={projects.length === 0 ? 'Create a project first to create tasks' : ''}
+            >
+              <span className="text-xl">+</span>
+              <span>
+                {projects.length === 0
+                  ? 'Create a Project First'
+                  : tasks.length === 0
+                  ? 'Create Your First Task'
+                  : 'Create New Task'}
+              </span>
+            </button>
+          </motion.div>
         ) : (
           filteredTasks.map((task) => (
             <div

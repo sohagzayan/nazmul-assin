@@ -1,14 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { useApp } from '../../context/AppContext';
 import CreateTeamModal from './CreateTeamModal';
 import { Trash2, Users, UserPlus } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useGetTeamsQuery } from '../../../redux/features/teamsApi';
 
 export default function TeamList() {
-  const { teams } = useApp();
+  const { data, isLoading, error, refetch } = useGetTeamsQuery();
+  const teams = data?.teams || [];
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // Show empty state if no teams (even if there was an error, we'll show empty state)
+  const showEmptyState = !isLoading && teams.length === 0;
 
   return (
     <motion.div
@@ -30,7 +34,11 @@ export default function TeamList() {
         </button>
       </div>
 
-      {teams.length === 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <div className="text-gray-500">Loading teams...</div>
+        </div>
+      ) : showEmptyState ? (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -92,7 +100,11 @@ export default function TeamList() {
 
       {isModalOpen && (
         <CreateTeamModal
-          onClose={() => setIsModalOpen(false)}
+          onClose={() => {
+            setIsModalOpen(false);
+            // Refetch teams after modal closes (in case a team was created)
+            refetch();
+          }}
         />
       )}
     </motion.div>

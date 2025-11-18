@@ -26,7 +26,13 @@ export const teamsApi = createApi({
   endpoints: (builder) => ({
     getTeams: builder.query<GetTeamsResponse, void>({
       query: () => '',
-      providesTags: ['Teams'],
+      providesTags: (result) =>
+        result?.teams
+          ? [
+              ...result.teams.map(({ id }) => ({ type: 'Teams' as const, id })),
+              { type: 'Teams', id: 'LIST' },
+            ]
+          : [{ type: 'Teams', id: 'LIST' }],
     }),
     createTeam: builder.mutation<CreateTeamResponse, CreateTeamRequest>({
       query: (body) => ({
@@ -34,7 +40,7 @@ export const teamsApi = createApi({
         method: 'POST',
         body,
       }),
-      invalidatesTags: ['Teams'],
+      invalidatesTags: [{ type: 'Teams', id: 'LIST' }],
     }),
   }),
 });
