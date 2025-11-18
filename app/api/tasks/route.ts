@@ -260,6 +260,16 @@ export async function POST(request: Request) {
       },
     });
 
+    // Create activity log for task creation
+    await prisma.activityLog.create({
+      data: {
+        message: `Task "${task.title}" created`,
+        type: 'TASK_CREATED',
+        taskId: task.id,
+        projectId: projectId,
+      },
+    });
+
     // Transform to match frontend Task type (convert Prisma enums to frontend format)
     const transformedTask = {
       id: task.id,

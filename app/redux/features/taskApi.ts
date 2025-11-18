@@ -75,6 +75,14 @@ export const taskApi = createApi({
         body,
       }),
       invalidatesTags: [{ type: 'Tasks', id: 'LIST' }],
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          dispatch(activityLogsApi.util.invalidateTags([{ type: 'ActivityLogs', id: 'LIST' }]));
+        } catch {
+          // Error handling is done by the mutation
+        }
+      },
     }),
     updateTask: builder.mutation<UpdateTaskResponse, UpdateTaskRequest>({
       query: ({ id, updates }) => ({
@@ -83,6 +91,14 @@ export const taskApi = createApi({
         body: updates,
       }),
       invalidatesTags: (result, error, { id }) => [{ type: 'Tasks', id }, { type: 'Tasks', id: 'LIST' }],
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          dispatch(activityLogsApi.util.invalidateTags([{ type: 'ActivityLogs', id: 'LIST' }]));
+        } catch {
+          // Error handling is done by the mutation
+        }
+      },
     }),
     deleteTask: builder.mutation<DeleteTaskResponse, string>({
       query: (id) => ({
@@ -90,6 +106,14 @@ export const taskApi = createApi({
         method: 'DELETE',
       }),
       invalidatesTags: (result, error, id) => [{ type: 'Tasks', id }, { type: 'Tasks', id: 'LIST' }],
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          dispatch(activityLogsApi.util.invalidateTags([{ type: 'ActivityLogs', id: 'LIST' }]));
+        } catch {
+          // Error handling is done by the mutation
+        }
+      },
     }),
     reassignTasks: builder.mutation<ReassignTasksResponse, void>({
       query: () => ({

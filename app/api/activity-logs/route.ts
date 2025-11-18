@@ -67,23 +67,48 @@ export async function GET() {
     }
 
     // Get all projects created by user to filter activity logs
-    const userProjects = await prisma.project.findMany({
-      where: { createdById: user.id },
-      select: { id: true },
-    });
+    let userProjects = [];
+    try {
+      userProjects = await prisma.project.findMany({
+        where: { createdById: user.id },
+        select: { id: true },
+      });
+    } catch (error: any) {
+      console.error('[GET ACTIVITY LOGS] Error fetching projects:', error);
+      // Return empty array if projects can't be fetched
+      return NextResponse.json({ activityLogs: [] });
+    }
 
     const projectIds = userProjects.map(p => p.id);
 
     // Get activity logs for user's projects, ordered by timestamp (newest first)
-    const activityLogs = await prisma.activityLog.findMany({
-      where: {
-        projectId: { in: projectIds },
-      },
-      orderBy: {
-        timestamp: 'desc',
-      },
-      take: 50, // Limit to 50 most recent
-    });
+    // If no projects, return empty array
+    let activityLogs: any[] = [];
+    if (projectIds && projectIds.length > 0) {
+      try {
+        // Filter out any invalid project IDs
+        const validProjectIds = projectIds.filter(id => id && typeof id === 'string' && id.length > 0);
+        
+        if (validProjectIds.length > 0) {
+          activityLogs = await prisma.activityLog.findMany({
+            where: {
+              projectId: { in: validProjectIds },
+            },
+            orderBy: {
+              timestamp: 'desc',
+            },
+            take: 50, // Limit to 50 most recent
+          });
+        }
+      } catch (error: any) {
+        console.error('[GET ACTIVITY LOGS] Error fetching activity logs:', error);
+        console.error('[GET ACTIVITY LOGS] Error message:', error?.message);
+        console.error('[GET ACTIVITY LOGS] Error code:', error?.code);
+        console.error('[GET ACTIVITY LOGS] Error name:', error?.name);
+        // Return empty array if query fails
+        activityLogs = [];
+      }
+    }
 
     // Transform to match frontend ActivityLog type
     const transformedLogs = activityLogs.map(log => ({
@@ -97,10 +122,15 @@ export async function GET() {
     }));
 
     return NextResponse.json({ activityLogs: transformedLogs });
-  } catch (error) {
-    console.error('[GET ACTIVITY LOGS]', error);
+  } catch (error: any) {
+    console.error('[GET ACTIVITY LOGS] Unexpected error:', error);
+    console.error('[GET ACTIVITY LOGS] Error message:', error?.message);
+    console.error('[GET ACTIVITY LOGS] Error stack:', error?.stack);
     return NextResponse.json(
-      { error: 'Something went wrong while fetching activity logs.' },
+      { 
+        error: 'Something went wrong while fetching activity logs.',
+        details: process.env.NODE_ENV === 'development' ? error?.message : undefined
+      },
       { status: 500 }
     );
   }

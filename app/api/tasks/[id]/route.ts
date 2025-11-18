@@ -91,7 +91,12 @@ export async function PATCH(
     const existingTask = await prisma.task.findUnique({
       where: { id: taskId },
       include: {
-        project: true,
+        project: {
+          select: {
+            id: true,
+            createdById: true,
+          },
+        },
       },
     });
 
@@ -252,6 +257,22 @@ export async function PATCH(
       data: updateData,
     });
 
+    // Create activity log for task update (use projectId from updated task or existing task)
+    const projectIdForLog = updatedTask.projectId || existingTask.projectId;
+    try {
+      await prisma.activityLog.create({
+        data: {
+          message: `Task "${updatedTask.title}" updated`,
+          type: 'TASK_UPDATED',
+          taskId: updatedTask.id,
+          projectId: projectIdForLog,
+        },
+      });
+    } catch (logError) {
+      // Log error but don't fail the task update
+      console.error('[CREATE ACTIVITY LOG]', logError);
+    }
+
     // Transform to match frontend Task type
     const transformedTask = {
       id: updatedTask.id,
@@ -341,6 +362,16 @@ export async function DELETE(
         { status: 403 }
       );
     }
+
+    // Create activity log before deleting
+    await prisma.activityLog.create({
+      data: {
+        message: `Task "${task.title}" deleted`,
+        type: 'TASK_DELETED',
+        taskId: task.id,
+        projectId: task.projectId,
+      },
+    });
 
     // Delete task
     await prisma.task.delete({

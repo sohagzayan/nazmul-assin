@@ -140,38 +140,44 @@ export async function POST(request: Request) {
               if (availableMembers.length > 0) {
                 const newAssignee = availableMembers[0];
                 
-                // Only reassign if different member
-                if (newAssignee.id !== task.assignedMemberId) {
-                  // Update task assignment
-                  await prisma.task.update({
-                    where: { id: task.id },
-                    data: { assignedMemberId: newAssignee.id },
-                  });
+              // Only reassign if different member
+              if (newAssignee.id !== task.assignedMemberId) {
+                // Update task assignment
+                await prisma.task.update({
+                  where: { id: task.id },
+                  data: { assignedMemberId: newAssignee.id },
+                });
 
-                  // Get project for activity log
-                  const project = team.projects.find(p => p.id === task.projectId);
+                // Get project for activity log (ensure projectId exists)
+                const projectId = task.projectId;
+                if (projectId) {
+                  try {
+                    // Create activity log
+                    await prisma.activityLog.create({
+                      data: {
+                        message: `Task "${task.title}" reassigned from ${member.name} to ${newAssignee.name}`,
+                        type: 'REASSIGNMENT',
+                        taskId: task.id,
+                        projectId: projectId,
+                        fromMemberId: member.id,
+                        toMemberId: newAssignee.id,
+                      },
+                    });
+                  } catch (logError: any) {
+                    // Log error but don't fail the reassignment
+                    console.error('[CREATE ACTIVITY LOG]', logError);
+                  }
+                }
 
-                  // Create activity log
-                  await prisma.activityLog.create({
-                    data: {
-                      message: `Task "${task.title}" reassigned from ${member.name} to ${newAssignee.name}`,
-                      type: 'REASSIGNMENT',
-                      taskId: task.id,
-                      projectId: project?.id,
-                      fromMemberId: member.id,
-                      toMemberId: newAssignee.id,
-                    },
-                  });
-
-                  reassignments.push({
-                    taskId: task.id,
-                    taskTitle: task.title,
-                    fromMemberId: member.id,
-                    fromMemberName: member.name,
-                    toMemberId: newAssignee.id,
-                    toMemberName: newAssignee.name,
-                    projectId: project?.id || '',
-                  });
+                reassignments.push({
+                  taskId: task.id,
+                  taskTitle: task.title,
+                  fromMemberId: member.id,
+                  fromMemberName: member.name,
+                  toMemberId: newAssignee.id,
+                  toMemberName: newAssignee.name,
+                  projectId: projectId || '',
+                });
 
                   // Update the task in currentTasks array for next iteration
                   const taskIndex = currentTasks.findIndex(t => t.id === task.id);

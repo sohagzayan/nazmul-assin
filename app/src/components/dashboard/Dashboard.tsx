@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { Users, FolderKanban, CheckSquare, AlertTriangle, TrendingUp, BarChart3 } from 'lucide-react';
+import { Users, FolderKanban, CheckSquare, AlertTriangle, TrendingUp, BarChart3, Plus, Edit, Trash2, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useToast } from '../../context/ToastContext';
 import { useGetTasksQuery, useReassignTasksMutation } from '../../../redux/features/taskApi';
@@ -49,9 +49,43 @@ export default function Dashboard() {
     });
   };
 
-  const recentReassignments = activityLogs
-    .filter(log => log.type === 'reassignment')
-    .slice(0, 5);
+  // Get recent activity logs (all types, latest 10)
+  const recentActivity = activityLogs.slice(0, 10);
+
+  // Helper function to get icon and color for activity type
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'reassignment':
+        return { icon: ArrowRight, color: 'text-blue-600', bgColor: 'bg-blue-100' };
+      case 'task_created':
+        return { icon: Plus, color: 'text-green-600', bgColor: 'bg-green-100' };
+      case 'task_updated':
+        return { icon: Edit, color: 'text-yellow-600', bgColor: 'bg-yellow-100' };
+      case 'task_deleted':
+        return { icon: Trash2, color: 'text-red-600', bgColor: 'bg-red-100' };
+      default:
+        return { icon: BarChart3, color: 'text-gray-600', bgColor: 'bg-gray-100' };
+    }
+  };
+
+  // Helper function to format time
+  const formatTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (diffInSeconds < 60) {
+      return 'Just now';
+    } else if (diffInSeconds < 3600) {
+      const minutes = Math.floor(diffInSeconds / 60);
+      return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+    } else if (diffInSeconds < 86400) {
+      const hours = Math.floor(diffInSeconds / 3600);
+      return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    } else {
+      return format(date, 'MMM d, yyyy h:mm a');
+    }
+  };
 
   const teamSummary = getTeamSummary();
   const totalProjects = projects.length;
@@ -201,24 +235,64 @@ export default function Dashboard() {
           transition={{ delay: 0.15 }}
           className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow duration-200 border-l-4 border-l-slate-200"
         >
-          <div className="flex items-center space-x-2 mb-2">
-            <BarChart3 className="w-5 h-5 text-gray-600" />
-            <h2 className="text-xl font-semibold text-gray-900">Recent Activity</h2>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center space-x-2">
+              <BarChart3 className="w-5 h-5 text-gray-600" />
+              <h2 className="text-xl font-semibold text-gray-900">Recent Activity</h2>
+            </div>
+            {recentActivity.length > 0 && (
+              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                {recentActivity.length} {recentActivity.length === 1 ? 'activity' : 'activities'}
+              </span>
+            )}
           </div>
-          <p className="text-sm text-gray-500 mb-4">Latest task reassignments</p>
+          <p className="text-sm text-gray-500 mb-4">Latest task activities and reassignments</p>
           
-          {recentReassignments.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No recent activity</p>
+          {recentActivity.length === 0 ? (
+            <div className="text-center py-12">
+              <BarChart3 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500 text-sm">No recent activity</p>
+              <p className="text-gray-400 text-xs mt-1">Activity will appear here as you work</p>
+            </div>
           ) : (
-            <div className="space-y-3">
-              {recentReassignments.map((log) => (
-                <div key={log.id} className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-900">{log.message}</p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {format(new Date(log.timestamp), 'MMM d, yyyy h:mm a')}
-                  </p>
-                </div>
-              ))}
+            <div className="space-y-3 max-h-[500px] overflow-y-auto">
+              {recentActivity.map((log) => {
+                const { icon: Icon, color, bgColor } = getActivityIcon(log.type);
+                return (
+                  <motion.div
+                    key={log.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200 group"
+                  >
+                    <div className={`${bgColor} rounded-full p-2 flex-shrink-0`}>
+                      <Icon className={`w-4 h-4 ${color}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-900 font-medium leading-relaxed">
+                        {log.message}
+                      </p>
+                      <div className="flex items-center space-x-2 mt-1.5">
+                        <span className="text-xs text-gray-500">
+                          {formatTime(log.timestamp)}
+                        </span>
+                        <span className="text-gray-300">•</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                          log.type === 'reassignment' ? 'bg-blue-100 text-blue-700' :
+                          log.type === 'task_created' ? 'bg-green-100 text-green-700' :
+                          log.type === 'task_updated' ? 'bg-yellow-100 text-yellow-700' :
+                          'bg-red-100 text-red-700'
+                        }`}>
+                          {log.type === 'reassignment' ? 'Reassignment' :
+                           log.type === 'task_created' ? 'Created' :
+                           log.type === 'task_updated' ? 'Updated' :
+                           'Deleted'}
+                        </span>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
             </div>
           )}
         </motion.div>
