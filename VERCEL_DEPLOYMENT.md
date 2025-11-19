@@ -41,7 +41,7 @@ Make sure your MongoDB Atlas cluster allows connections from anywhere:
 3. Check the **Build Logs** for any Prisma generation errors
 4. Look for errors like:
    - "Prisma Client has not been generated"
-   - "Cannot find module '../generated/prisma/client'"
+   - "Prisma Client could not locate the Query Engine for runtime \"rhel-openssl-3.0.x\""
    - Database connection errors
 
 ### 4. Redeploy
