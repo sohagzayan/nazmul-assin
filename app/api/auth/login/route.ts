@@ -80,38 +80,62 @@ export async function POST(request: Request) {
 
     return response;
   } catch (error) {
-    console.error('[LOGIN]', error);
+    // Enhanced error logging for production debugging
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    // Log full error details (visible in Vercel logs)
+    console.error('[LOGIN ERROR]', {
+      message: errorMessage,
+      stack: errorStack,
+      name: error instanceof Error ? error.name : 'Unknown',
+      env: process.env.NODE_ENV,
+      hasDatabaseUrl: !!process.env.DATABASE_URL,
+      hasJwtSecret: !!process.env.JWT_SECRET,
+    });
     
     // Check for common production issues
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    
-    // Check if it's a database connection issue
-    if (errorMessage.includes('DATABASE_URL') || errorMessage.includes('PrismaClient')) {
+    if (errorMessage.includes('DATABASE_URL') || errorMessage.includes('PrismaClient') || errorMessage.includes('prisma')) {
       return NextResponse.json(
         { 
           error: 'Database configuration error. Please check DATABASE_URL environment variable.',
-          details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+          details: errorMessage,
+          type: 'database_error'
         },
         { status: 500 }
       );
     }
     
     // Check if it's a JWT secret issue
-    if (errorMessage.includes('JWT_SECRET')) {
+    if (errorMessage.includes('JWT_SECRET') || errorMessage.includes('secret')) {
       return NextResponse.json(
         { 
           error: 'Authentication configuration error. Please check JWT_SECRET environment variable.',
-          details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+          details: errorMessage,
+          type: 'auth_error'
         },
         { status: 500 }
       );
     }
     
-    // Generic error with more details in development
+    // Check for MongoDB connection errors
+    if (errorMessage.includes('Mongo') || errorMessage.includes('connection') || errorMessage.includes('timeout')) {
+      return NextResponse.json(
+        { 
+          error: 'Database connection failed. Please check your MongoDB connection string and network access.',
+          details: errorMessage,
+          type: 'connection_error'
+        },
+        { status: 500 }
+      );
+    }
+    
+    // Generic error with details
     return NextResponse.json(
       { 
         error: 'Something went wrong while signing in.',
-        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+        details: errorMessage,
+        type: 'unknown_error'
       },
       { status: 500 }
     );

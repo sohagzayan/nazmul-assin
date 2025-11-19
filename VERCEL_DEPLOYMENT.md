@@ -56,24 +56,45 @@ After redeploying, try logging in again. The error should be resolved.
 
 ## Debugging Steps
 
-If you still see errors:
+### Step 1: Check Health Endpoint
+Visit: `https://nazmul-assin.vercel.app/api/health`
 
-1. **Check Vercel Function Logs:**
-   - Go to **Deployments** → Click on deployment → **Functions** tab
-   - Click on the `/api/auth/login` function
-   - Check the logs for specific error messages
+This will show you:
+- If environment variables are set
+- If DATABASE_URL has the correct format
+- If Prisma client can connect to the database
 
-2. **Verify DATABASE_URL:**
-   - Make sure it includes the database name (e.g., `/task_management`)
-   - Test the connection string locally if possible
+### Step 2: Check Vercel Function Logs
+1. Go to **Deployments** → Click on latest deployment
+2. Click on **Functions** tab
+3. Click on `/api/auth/login`
+4. Try logging in, then check the **Logs** tab
+5. Look for `[LOGIN ERROR]` entries with full error details
 
-3. **Check Prisma Generation:**
-   - Look in build logs for "Generated Prisma Client" message
-   - If missing, the `postinstall` script might have failed
+### Step 3: Check Build Logs
+1. Go to **Deployments** → Click on latest deployment
+2. Check **Build Logs** for:
+   - "Generated Prisma Client" message
+   - Any Prisma generation errors
+   - Environment variable warnings
 
-4. **Common Issues:**
-   - ❌ DATABASE_URL missing database name
-   - ❌ MongoDB Atlas IP whitelist not configured
-   - ❌ JWT_SECRET not set or too short
-   - ❌ Prisma client not generated during build
+### Step 4: Verify Common Issues
+
+**DATABASE_URL Format:**
+- ✅ Must include database name: `mongodb+srv://...@cluster.net/task_management?...`
+- ❌ Missing database name: `mongodb+srv://...@cluster.net/?appName=...`
+
+**MongoDB Atlas Network Access:**
+- Go to MongoDB Atlas → Network Access
+- Must have `0.0.0.0/0` (Allow Access from Anywhere) or specific Vercel IPs
+
+**Environment Variables:**
+- `DATABASE_URL` - Must be set and include database name
+- `JWT_SECRET` - Must be set (minimum 32 characters recommended)
+
+### Step 5: Test Locally with Production DATABASE_URL
+1. Copy your production `DATABASE_URL` from Vercel
+2. Set it in your local `.env.local`
+3. Run `npm run dev` and test login
+4. If it works locally but not in production, it's likely a network/IP whitelist issue
 
