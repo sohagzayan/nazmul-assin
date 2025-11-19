@@ -81,8 +81,38 @@ export async function POST(request: Request) {
     return response;
   } catch (error) {
     console.error('[LOGIN]', error);
+    
+    // Check for common production issues
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Check if it's a database connection issue
+    if (errorMessage.includes('DATABASE_URL') || errorMessage.includes('PrismaClient')) {
+      return NextResponse.json(
+        { 
+          error: 'Database configuration error. Please check DATABASE_URL environment variable.',
+          details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+        },
+        { status: 500 }
+      );
+    }
+    
+    // Check if it's a JWT secret issue
+    if (errorMessage.includes('JWT_SECRET')) {
+      return NextResponse.json(
+        { 
+          error: 'Authentication configuration error. Please check JWT_SECRET environment variable.',
+          details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+        },
+        { status: 500 }
+      );
+    }
+    
+    // Generic error with more details in development
     return NextResponse.json(
-      { error: 'Something went wrong while signing in.' },
+      { 
+        error: 'Something went wrong while signing in.',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      },
       { status: 500 }
     );
   }

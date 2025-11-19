@@ -50,5 +50,57 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
+### Step-by-Step Vercel Deployment
+
+1. **Push your code to GitHub** (if not already done)
+   ```bash
+   git push origin main
+   ```
+
+2. **Import your project to Vercel**
+   - Go to [Vercel Dashboard](https://vercel.com/dashboard)
+   - Click "Add New" → "Project"
+   - Import your GitHub repository
+
+3. **Configure Environment Variables** (CRITICAL)
+   
+   In your Vercel project settings, go to **Settings → Environment Variables** and add the following:
+   
+   **Required Variables:**
+   - `DATABASE_URL` - Your MongoDB connection string
+     - Example: `mongodb+srv://username:password@cluster.mongodb.net/database?retryWrites=true&w=majority`
+     - For MongoDB Atlas, use the connection string from your cluster
+   - `JWT_SECRET` - A secure random string for JWT token signing
+     - Generate a strong secret: `openssl rand -base64 32`
+     - Or use any long random string (minimum 32 characters recommended)
+   
+   **Optional Variables (for demo credentials):**
+   - `NEXT_PUBLIC_DEMO_ADMIN_USERNAME` - Default: `admin`
+   - `NEXT_PUBLIC_DEMO_ADMIN_EMAIL` - Default: `admin@taskmanager.com`
+   - `NEXT_PUBLIC_DEMO_ADMIN_PASSWORD` - Default: `admin123`
+   - `NEXT_PUBLIC_DEMO_USER_USERNAME` - Default: `john`
+   - `NEXT_PUBLIC_DEMO_USER_EMAIL` - Default: `john@taskmanager.com`
+   - `NEXT_PUBLIC_DEMO_USER_PASSWORD` - Default: `john123`
+
+4. **Deploy**
+   - Vercel will automatically detect Next.js and build your project
+   - The build process will run `prisma generate` automatically (via postinstall script)
+   - After deployment, your app will be live!
+
+5. **Troubleshooting**
+   
+   If you see a 500 error on login:
+   - ✅ Check that `DATABASE_URL` is set correctly in Vercel
+   - ✅ Check that `JWT_SECRET` is set in Vercel
+   - ✅ Verify your MongoDB connection string is accessible from the internet (for MongoDB Atlas, ensure your IP is whitelisted or use 0.0.0.0/0 for all IPs)
+   - ✅ Check Vercel deployment logs for specific error messages
+   - ✅ Ensure Prisma Client is generated (check build logs)
+
+### MongoDB Atlas Setup (if using cloud MongoDB)
+
+1. Create a cluster on [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+2. Create a database user
+3. Whitelist IP addresses (add `0.0.0.0/0` for Vercel deployments)
+4. Get your connection string and use it as `DATABASE_URL`
+
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# nazmul-assin
